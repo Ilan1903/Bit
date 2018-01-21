@@ -3,14 +3,45 @@ import pyotp
 import urllib
 
 
-API_KEY = ' '
-my_secret = ' '
-my_token = pyotp.TOTP(my_secret) #Tworzenie 30 sek kodu
-site_name = "https://bitskins.com/api/v1/get_account_balance/?api_key={}&code={}".format(API_KEY, my_token.now()) 
-def check_balance(website):         
+API_KEY = ''
+my_secret = ''
+
+#Tworzenie 30 sek kodu
+my_token = pyotp.TOTP(my_secret) 
+def check_balance(API, token):
+    
+    site_name = "https://bitskins.com/api/v1/get_account_balance/?api_key={}&code={}".format(API, token.now())          
     site = requests.get(site_name)
     table = site.json()
     return table['data']['available_balance']
 
-current_balance = check_balance(site_name)
+current_balance = check_balance(API_KEY, my_token)
 print(current_balance)
+
+
+#Zmiana nazwy na przystosowana do URL
+def name_change(text):  
+    something = text.split()
+    a = 0
+    final = ''
+    while a < (len(something)-1):
+        something[a] = something[a] + "%20"
+        final = final + something[a]
+        a = a+1
+    
+
+    return final+something[len(something)-1]
+#Wyszukiwanie itemu, zwraca 5 cen
+def search_item(API, token):
+    item_name = input("> ")
+    item_name = name_change(item_name)
+    five_prices = []
+    site_name = "https://bitskins.com/api/v1/get_inventory_on_sale/?api_key={}&page=1&app_id=730&sort_by=price&order=asc&market_hash_name={}&per_page=24&code={}".format(API, item_name, token)
+    site = requests.get(site_name)
+    table = site.json()
+    for i in range(5):
+        five_prices.append(table['data']['items'][i]['price'])
+    return five_prices
+
+
+print(search_item(API_KEY, my_token.now()))
