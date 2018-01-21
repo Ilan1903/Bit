@@ -1,0 +1,10 @@
+import urllib.request
+import pyotp
+
+API_KEY = ' '
+my_secret = 'secret przy auth'
+my_token = pyotp.TOTP(my_secret)
+site_name = "https://bitskins.com/api/v1/get_account_balance/?api_key={}&code={}".format(API_KEY,my_token.now())
+site = urllib.request.urlopen(site_name)
+print(site.read())
+
