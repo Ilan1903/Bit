@@ -1,11 +1,11 @@
 import requests
 import pyotp
 import urllib
+import json
 
-
-API_KEY = ''
-my_secret = ''
-
+API_KEY = ' '
+my_secret = ' '
+Base_currency = 'USD'
 #Tworzenie 30 sek kodu
 my_token = pyotp.TOTP(my_secret) 
 def check_balance(API, token):
@@ -15,33 +15,75 @@ def check_balance(API, token):
     table = site.json()
     return table['data']['available_balance']
 
-current_balance = check_balance(API_KEY, my_token)
-print(current_balance)
+#current_balance = check_balance(API_KEY, my_token)
+#print(current_balance)
 
 
-#Zmiana nazwy na przystosowana do URL
-def name_change(text):  
-    something = text.split()
-    a = 0
-    final = ''
-    while a < (len(something)-1):
-        something[a] = something[a] + "%20"
-        final = final + something[a]
-        a = a+1
-    
 
-    return final+something[len(something)-1]
+
+
 #Wyszukiwanie itemu, zwraca 5 cen
 def search_item(API, token):
     item_name = input("> ")
-    item_name = name_change(item_name)
+    item_name = item_name.replace(' ', '%20')
+    #item_name = name_change(item_name)
+    #print(item_name)
     five_prices = []
-    site_name = "https://bitskins.com/api/v1/get_inventory_on_sale/?api_key={}&page=1&app_id=730&sort_by=price&order=asc&market_hash_name={}&per_page=24&code={}".format(API, item_name, token)
+    site_name = "https://bitskins.com/api/v1/get_inventory_on_sale/?api_key={}&page=1&app_id=730&sort_by=price&order=asc&market_hash_name={}&per_page=24&code={}".format(API, item_name, token.now())
     site = requests.get(site_name)
     table = site.json()
-    for i in range(5):
-        five_prices.append(table['data']['items'][i]['price'])
-    return five_prices
+    
+    item_id = table['data']['items'][0]['item_id']
+    five_prices = table['data']['items'][0]['price']
+    return item_id, five_prices
+
+#prices = search_item(API_KEY, my_token.now())
+
+#Zamiana waluty
+def change_currency(base, price, Currency):
+    site_name = "https://api.fixer.io/latest?base={}".format(base)
+    site = requests.get(site_name)
+    table = site.json()
+    return price * float(table['rates'][Currency]) 
+
+#print(round((change_currency(Base_currency, float(prices[0]), 'EUR')), 2))
 
 
-print(search_item(API_KEY, my_token.now()))
+#Kupowanie
+def Buying(API, token, item, price): 
+    site_name = "https://bitskins.com/api/v1/buy_item/?api_key={}&item_ids={}&prices={}&app_id=730&code={}".format(API, item, price, token.now())
+    site = requests.get(site_name)
+    table = site.json()
+    print(table)
+    #return (table['trade_tokens'])
+item, item_price = search_item(API_KEY, my_token)
+print(item, item_price)
+Buying(API_KEY, my_token, item, item_price)
+
+
+#Pobieranie inventory
+def Inventory_Search(API, token):
+    item_name = input("> ")
+    site_name = "https://bitskins.com/api/v1/get_my_inventory/?api_key={}&page=1&app_id=730&code={}".format(API, token.now())
+    site = requests.get(site_name)
+    table = site.json()
+    for item in table['data']['steam_inventory']['items']:
+        if item['market_hash_name'] == item_name:
+            return item['item_ids'][0]
+
+#print(Inventory_Search(API_KEY, my_token))
+
+
+#Sprzedaż
+def Selling(API, token, item, price):
+    site_name = "https://bitskins.com/api/v1/list_item_for_sale/?api_key={}&item_ids={}&prices={}&app_id=730&code={}".format(API, item, price, token.now())
+    #print(site_name)
+    site = requests.get(site_name)
+    table = site.json()
+    print(table)
+
+#Selling(API_KEY, my_token, Inventory_Search(API_KEY, my_token), 0.76)
+
+#search_item(API_KEY, my_token)
+
+#print(Inventory_Search(API_KEY, my_token))
